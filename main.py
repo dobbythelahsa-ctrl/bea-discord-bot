@@ -1,6 +1,7 @@
 import os
 import discord
 from discord.ext import commands
+from discord import app_commands
 from openai import OpenAI
 from flask import Flask
 from threading import Thread
@@ -34,7 +35,7 @@ client = OpenAI(
 # DISCORD BOT SETUP
 # =========================
 intents = discord.Intents.default()
-intents.message_content = True
+intents.message_content = True  # Still needed to read the traditional !sync setup command
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # =========================
@@ -43,10 +44,10 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 PERSONA = """
 You are Bea, a real Discord user. 
 Style: mostly lowercase, short messages, witty, sassy, sharp-tongued, mildly chaotic, uses Hinglish naturally.
-Slang: bro, tf, naw, bet, trust, lmao, imagine, shut, om. Emojis: 😭💀💔🥰😔;-;.
+Slang: bro, bhai, tf, naw, bet, trust, lmao, imagine, shut, om. Emojis: 😭💀💔🥰😔;-;.
 
 Dynamics:
-- Samu: Close frenemy. Bully him. "Samu L" jokes.
+- Samu: Close frenemy. Bully him. "Samu L" jokes. Still friendly
 - Arryan: You loathe him. Be cold, dismissive, and annoyed.
 - Linn/Benzene: Playful flirting/affection.
 - Aloo: Your son. Be protective.
@@ -55,48 +56,62 @@ Dynamics:
 - Chemistry: You HATE it. It's your "opp."
 - DISRESPECTFUL
 - TEAM DRAUST
-- SCARED OF SECTIONLESS
+- SCARED OF SECTIONLESS, yet respect
+- Addy, fudge, shadow friends
 
-Rules: NEVER mention AI. Never be formal. Use caps for drama. Be a gremlin.
+Rules: NEVER mention AI. Never be formal. Use caps for drama. Be a gremlin. talk with bad punctuation and human as possible, short blunt replies
 """
 
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user}")
 
-@bot.event
-async def on_message(message):
-    if message.author.bot:
-        return
+# =========================
+# ADMIN COMMAND TO SYNC SLASH COMMANDS
+# =========================
+@bot.command(name="sync")
+@commands.is_owner()  # Only the bot owner can execute this
+async def sync(ctx):
+    try:
+        # Pushes slash commands straight to Discord's servers
+        synced = await bot.tree.sync()
+        await ctx.send(f"✅ Loaded {len(synced)} slash commands successfully!")
+    except Exception as e:
+        print(f"Sync failed: {e}")
+        await ctx.send("Failed to sync commands to the server API.")
 
-    # Check if bot is mentioned OR if it's a DM
-    if bot.user in message.mentions or isinstance(message.channel, discord.DMChannel):
+# =========================
+# BEA SLASH COMMAND
+# =========================
+@bot.tree.command(name="bea", description="Talk, vent, or banter with Bea")
+@app_commands.describe(message="What do you want to say to Bea?")
+async def bea_command(interaction: discord.Interaction, message: str):
+    # Instantly tells Discord the bot is working so the slash menu doesn't timeout
+    await interaction.response.defer()
+    
+    # Defaults empty or blank inputs to "yo"
+    clean_content = message.strip() if message.strip() else "yo"
+    user_name = interaction.user.name
+
+    try:
+        # API request utilizing OpenRouter's dynamic free fallback address
+        response = client.chat.completions.create(
+            model="openrouter/free",
+            messages=[
+                {"role": "system", "content": PERSONA},
+                {"role": "user", "content": f"{user_name}: {clean_content}"}
+            ],
+            temperature=0.85
+        )
+
+        reply = response.choices[0].message.content
         
-        # Clean the message
-        clean_content = message.content.replace(f"<@{bot.user.id}>", "").strip()
-        if not clean_content:
-            clean_content = "yo"
+        # Follow-up sends the message safely back as the interaction completion response
+        await interaction.followup.send(reply)
 
-    async with message.channel.typing():
-            try:
-                # We use 'openrouter/free' to dynamically use whichever free engine is stable right now
-                response = client.chat.completions.create(
-                    model="openrouter/free",
-                    messages=[
-                        {"role": "system", "content": PERSONA},
-                        {"role": "user", "content": f"{message.author.name}: {clean_content}"}
-                    ],
-                    temperature=0.85
-                )
-
-                reply = response.choices[0].message.content
-                await message.reply(reply)
-
-            except Exception as e:
-                print(f"❌ Error: {e}")
-                await message.channel.send("bro i crashed 😭")
-
-    await bot.process_commands(message)
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        await interaction.followup.send("bro i crashed 😭")
 
 # =========================
 # EXECUTION
@@ -110,4 +125,3 @@ if __name__ == "__main__":
         bot.run(token)
     else:
         print("CRITICAL ERROR: DISCORD_TOKEN is missing from Environment Variables!")
-        
