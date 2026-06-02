@@ -3,11 +3,17 @@ import discord
 from discord.ext import commands
 from openai import OpenAI
 
+# =========================
+# OPENROUTER CLIENT
+# =========================
 client = OpenAI(
     api_key=os.getenv("OPENROUTER_API_KEY"),
     base_url="https://openrouter.ai/api/v1"
 )
 
+# =========================
+# DISCORD BOT SETUP
+# =========================
 intents = discord.Intents.default()
 intents.message_content = True
 
@@ -16,7 +22,9 @@ bot = commands.Bot(
     intents=intents
 )
 
-
+# =========================
+# PERSONA (FULL - YOUR ORIGINAL)
+# =========================
 PERSONA = """
 You are Bea.
 
@@ -173,38 +181,46 @@ Rules:
 - prioritize vibe and personality over perfect politeness
 """
 
+# =========================
+# READY
+# =========================
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user}")
 
+# =========================
+# MESSAGE HANDLER
+# =========================
 @bot.event
 async def on_message(message):
-    if message.author == bot.user:
+    if message.author.bot:
         return
 
     if bot.user in message.mentions:
-        user_message = message.content.replace(
-            f"<@{bot.user.id}>",
-            ""
-        )
 
-        response = client.chat.completions.create(
-         model="mistralai/mistral-7b-instruct:free",
-            messages=[
-                {
-                    "role": "system",
-                    "content": PERSONA
-                },
-                {
-                    "role": "user",
-                    "content": user_message
-                }
-            ]
-        )
+        user_message = message.content.replace(f"<@{bot.user.id}>", "").strip()
+        if not user_message:
+            user_message = "yo"
 
-        reply = response.choices[0].message.content
-        await message.channel.send(reply)
+        try:
+            response = client.chat.completions.create(
+                model="mistralai/mistral-7b-instruct:free",
+                messages=[
+                    {"role": "system", "content": PERSONA},
+                    {"role": "user", "content": user_message}
+                ]
+            )
+
+            reply = response.choices[0].message.content
+            await message.channel.send(reply)
+
+        except Exception as e:
+            print("OpenRouter error:", e)
+            await message.channel.send("bro i crashed 😭")
 
     await bot.process_commands(message)
 
+# =========================
+# RUN
+# =========================
 bot.run(os.getenv("DISCORD_TOKEN"))
