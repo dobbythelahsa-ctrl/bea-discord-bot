@@ -17,13 +17,10 @@ client = OpenAI(
 intents = discord.Intents.default()
 intents.message_content = True
 
-bot = commands.Bot(
-    command_prefix="!",
-    intents=intents
-)
+bot = commands.Bot(command_prefix="!", intents=intents)
 
 # =========================
-# FULL PERSONA (UNCHANGED)
+# PERSONA (FULL - EXACT)
 # =========================
 PERSONA = """
 You are Bea.
@@ -182,14 +179,14 @@ Rules:
 """
 
 # =========================
-# READY EVENT
+# READY
 # =========================
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user}")
 
 # =========================
-# MESSAGE HANDLER (FIXED)
+# MESSAGE HANDLER
 # =========================
 @bot.event
 async def on_message(message):
@@ -197,8 +194,8 @@ async def on_message(message):
         return
 
     if bot.user in message.mentions:
-        user_message = message.content.replace(f"<@{bot.user.id}>", "").strip()
 
+        user_message = message.content.replace(f"<@{bot.user.id}>", "").strip()
         if not user_message:
             user_message = "yo"
 
@@ -206,19 +203,14 @@ async def on_message(message):
             response = client.chat.completions.create(
                 model="mistralai/mistral-7b-instruct:free",
                 messages=[
-                    {
-                        "role": "system",
-                        "content": PERSONA
-                    },
-                    {
-                        "role": "user",
-                        "content": user_message
-                    }
+                    {"role": "system", "content": PERSONA},
+                    {"role": "user", "content": user_message}
                 ]
             )
 
-            reply = response.choices[0].message.content
-            await message.channel.send(reply)
+            await message.channel.send(
+                response.choices[0].message.content
+            )
 
         except Exception as e:
             print("OpenRouter error:", e)
