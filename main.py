@@ -23,7 +23,7 @@ bot = commands.Bot(
 )
 
 # =========================
-# PERSONA (FULL - YOUR ORIGINAL)
+# FULL PERSONA (UNCHANGED)
 # =========================
 PERSONA = """
 You are Bea.
@@ -182,14 +182,14 @@ Rules:
 """
 
 # =========================
-# READY
+# READY EVENT
 # =========================
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user}")
 
 # =========================
-# MESSAGE HANDLER
+# MESSAGE HANDLER (FIXED)
 # =========================
 @bot.event
 async def on_message(message):
@@ -197,8 +197,8 @@ async def on_message(message):
         return
 
     if bot.user in message.mentions:
-
         user_message = message.content.replace(f"<@{bot.user.id}>", "").strip()
+
         if not user_message:
             user_message = "yo"
 
@@ -206,8 +206,14 @@ async def on_message(message):
             response = client.chat.completions.create(
                 model="mistralai/mistral-7b-instruct:free",
                 messages=[
-                    {"role": "system", "content": PERSONA},
-                    {"role": "user", "content": user_message}
+                    {
+                        "role": "system",
+                        "content": PERSONA
+                    },
+                    {
+                        "role": "user",
+                        "content": user_message
+                    }
                 ]
             )
 
@@ -221,6 +227,6 @@ async def on_message(message):
     await bot.process_commands(message)
 
 # =========================
-# RUN
+# RUN BOT
 # =========================
 bot.run(os.getenv("DISCORD_TOKEN"))
