@@ -4,7 +4,8 @@ from discord.ext import commands
 from openai import OpenAI
 
 client = OpenAI(
-    api_key=os.getenv("OPENAI_API_KEY")
+    api_key=os.getenv("OPENROUTER_API_KEY"),
+    base_url="https://openrouter.ai/api/v1"
 )
 
 intents = discord.Intents.default()
@@ -188,7 +189,7 @@ async def on_message(message):
         )
 
         response = client.chat.completions.create(
-            model="gpt-4.1-mini",
+         model="mistralai/mistral-7b-instruct:free",
             messages=[
                 {
                     "role": "system",
