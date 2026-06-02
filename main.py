@@ -101,6 +101,12 @@ async def on_message(message):
 # EXECUTION
 # =========================
 if __name__ == "__main__":
-    keep_alive() # Satisfies Render's port requirement
-    bot.run(os.getenv("DISCORD_TOKEN"))
-    
+    print("Starting Web Server...")
+    keep_alive()
+    print("Starting Discord Bot...")
+    token = os.getenv("DISCORD_TOKEN")
+    if token:
+        bot.run(token)
+    else:
+        print("CRITICAL ERROR: DISCORD_TOKEN is missing from Environment Variables!")
+        
