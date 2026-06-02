@@ -74,26 +74,24 @@ async def on_message(message):
         if not clean_content:
             clean_content = "yo"
 
-        async with message.channel.typing():
+    async with message.channel.typing():
             try:
-                # We pass the persona EVERY time as the system prompt
-                # We also tell the AI WHO is talking to it
+                # We use 'openrouter/free' to dynamically use whichever free engine is stable right now
                 response = client.chat.completions.create(
-                    model="mistralai/mistral-7b-instruct:free",
+                    model="openrouter/free",
                     messages=[
                         {"role": "system", "content": PERSONA},
-                        {"role": "user", "content": f"{message.author.name} says: {clean_content}"}
+                        {"role": "user", "content": f"{message.author.name}: {clean_content}"}
                     ],
-                    temperature=0.9, # Higher temperature = more "chaotic/human"
-                    max_tokens=150
+                    temperature=0.85
                 )
 
                 reply = response.choices[0].message.content
-                await message.reply(reply) # Using reply() makes it feel more like a chat
+                await message.reply(reply)
 
             except Exception as e:
-                print(f"Error: {e}")
-                await message.channel.send("bro my brain just lagged 😭")
+                print(f"❌ Error: {e}")
+                await message.channel.send("bro i crashed 😭")
 
     await bot.process_commands(message)
 
